@@ -48,29 +48,38 @@
 
     <script>
         window.onload = function() {
-            // 1. URLからコンテンツデータを取得
-            const params = new URLSearchParams(window.location.search);
-            const contentData = params.get('content');
-
             const contentDiv = document.getElementById('content');
+            try {
+                // 1. URLからコンテンツデータを取得
+                const params = new URLSearchParams(window.location.search);
+                const contentData = params.get('content');
 
-            if (contentData) {
-                try {
-                    // 2. データをデコード（Base64形式）
-                    const markdownText = decodeURIComponent(atob(contentData));
-                    
-                    // 3. マークダウンをHTMLに変換し、入力欄に置き換える
-                    let htmlContent = marked.parse(markdownText);
-                    htmlContent = htmlContent.replace(/\[INPUT\]/g, '<textarea placeholder="ここに書き込んでみましょう..."></textarea>');
-
-                    // 4. ページに表示
-                    contentDiv.innerHTML = htmlContent;
-                } catch (e) {
-                    contentDiv.innerHTML = '<h1>エラー</h1><p>コンテンツの読み込みに失敗しました。URLが正しいか確認してください。</p>';
-                    console.error("Error decoding content:", e);
+                if (!contentData) {
+                    throw new Error("コンテンツデータが見つかりません。");
                 }
-            } else {
-                 contentDiv.innerHTML = '<h1>今日のワーク</h1><p>コンテンツが指定されていません。</p>';
+
+                // 2. 【万能解読機】URL-safe Base64を、標準Base64に変換
+                let base64 = contentData.replace(/-/g, '+').replace(/_/g, '/');
+                
+                // 3. 【万能解読機】失われたパディング文字'='を復元
+                const padding = base64.length % 4;
+                if (padding) {
+                    base64 += '='.repeat(4 - padding);
+                }
+
+                // 4. Base64から元の文章にデコード
+                const markdownText = decodeURIComponent(atob(base64));
+                
+                // 5. マークダウンをHTMLに変換し、入力欄に置き換える
+                let htmlContent = marked.parse(markdownText);
+                htmlContent = htmlContent.replace(/\[INPUT\]/g, '<textarea placeholder="ここに書き込んでみましょう..."></textarea>');
+
+                // 6. ページに表示
+                contentDiv.innerHTML = htmlContent;
+
+            } catch (e) {
+                contentDiv.innerHTML = '<h1>エラー</h1><p>コンテンツの読み込みに失敗しました。URLが正しいか確認してください。</p>';
+                console.error("Error decoding content:", e);
             }
         };
     </script>
